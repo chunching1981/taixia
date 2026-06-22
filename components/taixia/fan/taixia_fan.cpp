@@ -123,7 +123,7 @@ static const char *const TAG = "taixia.fan";
         else
           this->speed = buffer[4];
     } else if (this->sa_id_ == SA_ID_DEHUMIDIFIER) {
-        command[2] = SERVICE_ID_DEHUMIDTFIER_STATUS;
+        command[2] = SERVICE_ID_DEHUMIDIFIER_STATUS;
         command[5] = this->parent_->checksum(command, 5);
         this->parent_->send_cmd(command, buffer, 6);
         if ((buffer[3] == 0xFF) && (buffer[4] == 0xFF))
@@ -131,7 +131,7 @@ static const char *const TAG = "taixia.fan";
         else
           this->state = buffer[4];
 
-        command[2] = SERVICE_ID_DEHUMIDTFIER_FAN_LEVEL;
+        command[2] = SERVICE_ID_DEHUMIDIFIER_FAN_LEVEL;
         command[5] = this->parent_->checksum(command, 5);
         this->parent_->send_cmd(command, buffer, 6);
         if ((buffer[3] == 0xFF) && (buffer[4] == 0xFF))
@@ -172,14 +172,14 @@ static const char *const TAG = "taixia.fan";
                 }
             } else if (this->sa_id_ == SA_ID_DEHUMIDIFIER) {
                 switch (response[i]) {
-                  case SERVICE_ID_DEHUMIDTFIER_STATUS:
+                  case SERVICE_ID_DEHUMIDIFIER_STATUS:
                     this->state = get_u16(response, i + 1);
                     this->parent_->power_switch(this->state);
                   break;
-                  case SERVICE_ID_DEHUMIDTFIER_FAN_LEVEL:
+                  case SERVICE_ID_DEHUMIDIFIER_FAN_LEVEL:
                     this->speed = get_u16(response, i + 1);
                   break;
-                  case SERVICE_ID_DEHUMIDTFIER_MODE:
+                  case SERVICE_ID_DEHUMIDIFIER_MODE:
                     this->set_preset_mode_(get_preset_mode_(get_u16(response, i + 1)));
                   break;
                 }
@@ -206,10 +206,10 @@ static const char *const TAG = "taixia.fan";
     uint8_t preset_mode = 0;
 
     if (this->sa_id_ == SA_ID_DEHUMIDIFIER) {
-        status = SERVICE_ID_DEHUMIDTFIER_STATUS;
-        speed = SERVICE_ID_DEHUMIDTFIER_FAN_LEVEL;
+        status = SERVICE_ID_DEHUMIDIFIER_STATUS;
+        speed = SERVICE_ID_DEHUMIDIFIER_FAN_LEVEL;
         oscillate = 0xff;
-        preset_mode = SERVICE_ID_DEHUMIDTFIER_MODE;
+        preset_mode = SERVICE_ID_DEHUMIDIFIER_MODE;
     } else {
         status = SERVICE_ID_FAN_STATUS;
         speed = SERVICE_ID_FAN_SPEED;

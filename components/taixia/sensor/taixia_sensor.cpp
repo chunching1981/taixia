@@ -217,47 +217,47 @@ void DehumidifierSensor::handle_response(std::vector<uint8_t> &response) {
       continue;
     }
     switch (response[i]) {
-      case SERVICE_ID_DEHUMIDTFIER_TEMPERATURE_INDOOR:
+      case SERVICE_ID_DEHUMIDIFIER_TEMPERATURE_INDOOR:
         if (this->temperature_indoor_sensor_ != nullptr) {
           publish_i16(response, i, this->temperature_indoor_sensor_);
         }
       break;
-      case SERVICE_ID_DEHUMIDTFIER_HUMIDITY_INDOOR:
+      case SERVICE_ID_DEHUMIDIFIER_HUMIDITY_INDOOR:
         if (this->humidity_indoor_sensor_ != nullptr) {
           publish_u16(response, i, this->humidity_indoor_sensor_);
         }
       break;
-      case SERVICE_ID_DEHUMIDTFIER_ERROR_CODE:
+      case SERVICE_ID_DEHUMIDIFIER_ERROR_CODE:
         if (this->error_code_sensor_ != nullptr) {
           publish_u16(response, i, this->error_code_sensor_);
         }
       break;
-      case SERVICE_ID_DEHUMIDTFIER_OPERATING_CURRENT:
+      case SERVICE_ID_DEHUMIDIFIER_OPERATING_CURRENT:
         if (this->operating_current_sensor_ != nullptr) {
           publish_float_div_10(response, i, this->operating_current_sensor_);
         }
       break;
-      case SERVICE_ID_DEHUMIDTFIER_OPERATING_VOLTAGE:
+      case SERVICE_ID_DEHUMIDIFIER_OPERATING_VOLTAGE:
         if (this->operating_voltage_sensor_ != nullptr) {
           publish_u16(response, i, this->operating_voltage_sensor_);
         }
       break;
-      case SERVICE_ID_DEHUMIDTFIER_OPERATING_WATT:
+      case SERVICE_ID_DEHUMIDIFIER_OPERATING_WATT:
         if (this->operating_power_sensor_ != nullptr) {
           publish_u16(response, i, this->operating_power_sensor_);
         }
       break;
-      case SERVICE_ID_DEHUMIDTFIER_ENERGY_CONSUMPTION:
+      case SERVICE_ID_DEHUMIDIFIER_ENERGY_CONSUMPTION:
         if (this->energy_consumption_sensor_ != nullptr) {
           publish_float_div_10(response, i, this->energy_consumption_sensor_);
         }
       break;
-      case SERVICE_ID_DEHUMIDTFIER_PM_2_5:
+      case SERVICE_ID_DEHUMIDIFIER_PM_2_5:
         if (this->pm_2_5_sensor_ != nullptr) {
           publish_u16(response, i, this->pm_2_5_sensor_);
         }
       break;
-      case SERVICE_ID_DEHUMIDTFIER_ODOURS:
+      case SERVICE_ID_DEHUMIDIFIER_ODOURS:
         if (this->odours_sensor_ != nullptr) {
           publish_u16(response, i, this->odours_sensor_);
         }

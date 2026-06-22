@@ -171,9 +171,7 @@ void DehumidifierSensor::handle_response(std::vector<uint8_t> &response) {
       case SERVICE_ID_DEHUMIDIFIER_SIDE_AIR_VENT:
         if (this->side_air_vent_sensor_ != nullptr) publish_u16(response, i, this->side_air_vent_sensor_);
       break;
-      case SERVICE_ID_DEHUMIDIFIER_DEFROST:
-        if (this->defrost_sensor_ != nullptr) publish_u16(response, i, this->defrost_sensor_);
-      break;
+      // 💡 已經將未宣告的 Defrost 移除
       case SERVICE_ID_DEHUMIDIFIER_ERROR_CODE:
         if (this->error_code_sensor_ != nullptr) publish_u16(response, i, this->error_code_sensor_);
       break;

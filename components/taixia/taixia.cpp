@@ -463,5 +463,10 @@ static const uint8_t RESPONSE_LENGTH = 255;
     }
   }
 
+// 💡 補上遺漏的 loop 迴圈函數
+  void TaiXia::loop() {
+    this->readline(true);
+  }
+
 }  // namespace taixia
 }  // namespace esphome

@@ -38,7 +38,7 @@ static const char *const TAG = "taixia.binary_sensor";
           break; // 💡 順手幫原作者補上冷氣 case 忘記寫的 break，雖然不影響除溼機，但這是好習慣
         case SA_ID_DEHUMIDIFIER:
           switch (response[i]) {
-            // 💡 以下的 DEHUMIDTFIER 和 PURFIFIER 錯字已全數修正
+            // 💡 以下的 DEHUMIDIFIER 和 PURFIFIER 錯字已全數修正
             case SERVICE_ID_DEHUMIDIFIER_WATER_TANK_FULL:
               if (this->service_id_ == SERVICE_ID_DEHUMIDIFIER_WATER_TANK_FULL) {
                 this->state = bool(response[i + 2]);

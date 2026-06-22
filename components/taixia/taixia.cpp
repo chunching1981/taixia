@@ -376,9 +376,79 @@ static const uint8_t RESPONSE_LENGTH = 255;
     return true;
   }
 
+  // 💡 新增的除溼機狀態讀取功能！
+  bool TaiXia::read_dehumidifier_status_() {
+    uint8_t response[6];
+    uint8_t buffer[RESPONSE_LENGTH];
+    uint8_t cmd[6] = {0x06, 0x00, 0x00, 0xFF, 0xFF, 0x00};
+    uint8_t ret = 0;
+    uint8_t i = 3;
+    uint32_t timeout = 60000;
+
+    memset(response, 0x00, 6);
+    memset(buffer, 0x00, RESPONSE_LENGTH);
+
+    // 1. 讀取電源/狀態
+    cmd[1] = this->sa_id_;
+    cmd[2] = SERVICE_ID_DEHUMIDIFIER_STATUS;
+    cmd[5] = this->checksum(cmd, 5);
+    this->write_command_(cmd, response, 6, 6, timeout);
+    buffer[i++] = response[2];
+    buffer[i++] = response[3];
+    buffer[i++] = response[4];
+
+    // 2. 讀取運作模式
+    timeout = 60000;
+    cmd[1] = this->sa_id_;
+    cmd[2] = SERVICE_ID_DEHUMIDIFIER_MODE;
+    cmd[5] = this->checksum(cmd, 5);
+    this->write_command_(cmd, response, 6, 6, timeout);
+    buffer[i++] = response[2];
+    buffer[i++] = response[3];
+    buffer[i++] = response[4];
+
+    // 3. 讀取目前相對濕度
+    timeout = 60000;
+    cmd[1] = this->sa_id_;
+    cmd[2] = SERVICE_ID_DEHUMIDIFIER_RELATIVE_HUMIDITY;
+    cmd[5] = this->checksum(cmd, 5);
+    this->write_command_(cmd, response, 6, 6, timeout);
+    buffer[i++] = response[2];
+    buffer[i++] = response[3];
+    buffer[i++] = response[4];
+
+    // 4. 讀取水箱滿水狀態
+    timeout = 60000;
+    cmd[1] = this->sa_id_;
+    cmd[2] = SERVICE_ID_DEHUMIDIFIER_WATER_TANK_FULL;
+    cmd[5] = this->checksum(cmd, 5);
+    this->write_command_(cmd, response, 6, 6, timeout);
+    buffer[i++] = response[2];
+    buffer[i++] = response[3];
+    buffer[i++] = response[4];
+
+    buffer[i] = this->checksum(cmd, i);
+
+    this->buffer_.clear();
+    buffer[0] = i;
+    for (uint8_t j = 0; j < i; j++) {
+      this->buffer_.push_back(buffer[j]);
+    }
+
+    ESP_LOGV(TAG, "cmd buffer: %x %x %x %x %x %x", this->buffer_[0], this->buffer_[1], this->buffer_[2], this->buffer_[3], this->buffer_[4], this->buffer_[5]);
+    for (auto &listener : this->listeners_)
+      listener->on_response(this->sa_id_, this->buffer_);
+
+    this->buffer_.clear();
+
+    return true;
+  }
+
   bool TaiXia::read_sa_status() {
     if (this->sa_id_ == 1)
       return this->read_climate_status_();
+    else if (this->sa_id_ == 4) // 💡 讓程式遇到除溼機(4)時，去呼叫下面那個函數
+      return this->read_dehumidifier_status_();
     return false;
   }
 
@@ -387,86 +457,4 @@ static const uint8_t RESPONSE_LENGTH = 255;
       this->get_info_();
     else {
       uint8_t response[RESPONSE_LENGTH];
-      uint8_t cmd[6] = {0x06, sa_id, (uint8_t)(WRITE | service_id), 0x00, 0x00, 0x00};
-      cmd[4] = value;
-      cmd[5] = this->checksum(cmd, 5);
-
-      this->write_command_(cmd, response, 6, 6);
-    }
-  }
-
-  void TaiXia::readline(bool handle_response) {
-      uint8_t c, len;
-      uint8_t response[255];
-      read_byte(&c);
-
-      this->len_ = c;
-      this->buffer_.push_back(c);
-
-      len = this->len_ - 1;
-      if ((this->max_length_ > 6) && (len >= this->max_length_))
-          len = this->max_length_;
-
-      // wait for data
-      read_array(response, len);
-
-      for (uint8_t i = 0; i < len; i++) {
-        this->buffer_.push_back(response[i]);
-      }
-
-      if (handle_response) {
-        auto crc = this->checksum(response, len - 1) ^ (len + 1);
-        if (crc == response[len - 1]) {
-          for (auto &listener : this->listeners_)
-            listener->on_response(this->sa_id_, this->buffer_);
-        }
-        this->buffer_.clear();
-      }
-  }
-
-  void TaiXia::loop() {
-    if (!available())
-      return;
-
-    while (available()) {
-      readline(true);
-    }
-  }
-
-  bool TaiXia::send(uint8_t packet_length, uint8_t data_type, uint8_t sa_id, uint8_t service_id, uint16_t data) {
-    uint8_t frame[255];
-
-    if (this->protocol_ != data_type)
-      data_type = this->protocol_;
-
-    if (data_type == 1) {
-      frame[0] = packet_length;
-      frame[1] = sa_id;
-      frame[2] = service_id;
-      // ....
-    } else {
-      frame[0] = packet_length;
-      frame[1] = sa_id;
-      frame[2] = service_id;
-      frame[3] = data >> 8;
-      frame[4] = data >> 0;
-      auto crc = this->checksum(frame, 5);
-      frame[5] =  crc;
-    }
-
-    this->write_array(frame, packet_length);
-    this->flush();
-    if (this->response_time_ != 0) {
-      delayMicroseconds(this->response_time_);
-    }
-    return true;
-  }
-
-  void TaiXiaListener::on_response(uint16_t sa_id, std::vector<uint8_t> &response) {
-//    if ((this->sa_id_ != 0xffff) && (this->sa_id_ != sa_id))
-//      return;
-    this->handle_response(response);
-  }
-
-}  // namespace taixia
-}  // namespace esphome
+      uint8_t cmd[6] = {0x06, sa_id, (uint8

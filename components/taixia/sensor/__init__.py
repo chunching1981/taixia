@@ -418,12 +418,12 @@ CONFIG_SCHEMA = cv.typed_schema(
                     device_class=DEVICE_CLASS_TEMPERATURE,
                     state_class=STATE_CLASS_MEASUREMENT,
                 ),
-                cv.Optional(CONF_ERROR_CODE): sensor.sensor_schema(
+                cv.Optional(CONF_MODEL_TYPE): sensor.sensor_schema(
                     icon=ICON_CHIP,
                     device_class=DEVICE_CLASS_EMPTY,
                     entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
                 ),
-                cv.Optional(CONF_MODEL_TYPE): sensor.sensor_schema(
+                cv.Optional(CONF_ERROR_CODE): sensor.sensor_schema(
                     icon=ICON_CHIP,
                     device_class=DEVICE_CLASS_EMPTY,
                     entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
@@ -598,7 +598,7 @@ async def to_code(config):
             cg.add(var.set_temperature_indoor_sensor(sens))
         if CONF_WATER_FULL in config:
             sens = await sensor.new_sensor(config[CONF_WATER_FULL])
-            cg.add(var.set_appoint_left_hours_sensor(sens))
+            cg.add(var.set_water_full_sensor(sens))
         if CONF_FILTER_CLEAN in config:
             sens = await sensor.new_sensor(config[CONF_FILTER_CLEAN])
             cg.add(var.set_filter_clean_sensor(sens))
@@ -608,6 +608,9 @@ async def to_code(config):
         if CONF_DEFROST in config:
             sens = await sensor.new_sensor(config[CONF_DEFROST])
             cg.add(var.set_defrost_sensor(sens))
+        if CONF_ERROR_CODE in config:
+            sens = await sensor.new_sensor(config[CONF_ERROR_CODE])
+            cg.add(var.set_error_code_sensor(sens))
         if CONF_OPERATING_CURRENT in config:
             sens = await sensor.new_sensor(config[CONF_OPERATING_CURRENT])
             cg.add(var.set_operating_current_sensor(sens))

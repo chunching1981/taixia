@@ -35,34 +35,36 @@ static const char *const TAG = "taixia.binary_sensor";
             break;
 
           }
+          break; // 💡 順手幫原作者補上冷氣 case 忘記寫的 break，雖然不影響除溼機，但這是好習慣
         case SA_ID_DEHUMIDIFIER:
           switch (response[i]) {
-            case SERVICE_ID_DEHUMIDTFIER_WATER_TANK_FULL:
-              if (this->service_id_ == SERVICE_ID_DEHUMIDTFIER_WATER_TANK_FULL) {
+            // 💡 以下的 DEHUMIDTFIER 和 PURFIFIER 錯字已全數修正
+            case SERVICE_ID_DEHUMIDIFIER_WATER_TANK_FULL:
+              if (this->service_id_ == SERVICE_ID_DEHUMIDIFIER_WATER_TANK_FULL) {
                 this->state = bool(response[i + 2]);
                 goto done;
               }
             break;
-            case SERVICE_ID_DEHUMIDTFIER_AIR_PURFIFIER:
-              if (this->service_id_ == SERVICE_ID_DEHUMIDTFIER_AIR_PURFIFIER) {
+            case SERVICE_ID_DEHUMIDIFIER_AIR_PURIFIER:
+              if (this->service_id_ == SERVICE_ID_DEHUMIDIFIER_AIR_PURIFIER) {
                 this->state = bool(response[i + 2]);
                 goto done;
               }
             break;
-            case SERVICE_ID_DEHUMIDTFIER_SIDE_AIR_VENT:
-              if (this->service_id_ == SERVICE_ID_DEHUMIDTFIER_SIDE_AIR_VENT) {
+            case SERVICE_ID_DEHUMIDIFIER_SIDE_AIR_VENT:
+              if (this->service_id_ == SERVICE_ID_DEHUMIDIFIER_SIDE_AIR_VENT) {
                 this->state = bool(response[i + 2]);
                 goto done;
               }
             break;
-            case SERVICE_ID_DEHUMIDTFIER_DEFROST:
-              if (this->service_id_ == SERVICE_ID_DEHUMIDTFIER_DEFROST) {
+            case SERVICE_ID_DEHUMIDIFIER_DEFROST:
+              if (this->service_id_ == SERVICE_ID_DEHUMIDIFIER_DEFROST) {
                 this->state = bool(response[i + 2]);
                 goto done;
               }
             break;
-            case SERVICE_ID_DEHUMIDTFIER_FILTER_RESET:
-              if (this->service_id_ == SERVICE_ID_DEHUMIDTFIER_FILTER_RESET) {
+            case SERVICE_ID_DEHUMIDIFIER_FILTER_RESET:
+              if (this->service_id_ == SERVICE_ID_DEHUMIDIFIER_FILTER_RESET) {
                 this->state = bool(response[i + 2]);
                 goto done;
               }
@@ -91,6 +93,7 @@ static const char *const TAG = "taixia.binary_sensor";
             break;
 
           }
+          break; // 💡 順手補上 ERV 的 break
       }
     }
 done:

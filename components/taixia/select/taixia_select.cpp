@@ -178,7 +178,7 @@ static const char *const TAG = "taixia.select";
     if (this->operating_program_select_ != nullptr)
       LOG_SELECT("  ", "Operating Program", this->operating_program_select_);
     if (this->air_purfifier_select_ != nullptr)
-      LOG_SELECT("  ", "Air Purfifier", this->air_purfifier_select_);
+      LOG_SELECT("  ", "Air Purifier", this->air_purfifier_select_);
   }
 
   void DehumidifierSelect::handle_response(std::vector<uint8_t> &response) {
@@ -191,10 +191,11 @@ static const char *const TAG = "taixia.select";
 
     for (i = 6; i < response[0] - 3; i+=3) {
       switch (response[i]) {
-        case SERVICE_ID_DEHUMIDTFIER_MODE:
+        // 💡 修正了這裡的錯字
+        case SERVICE_ID_DEHUMIDIFIER_MODE:
             mapping_idx = get_mapping_idx(response, i, this->mappings_);
         break;
-        case SERVICE_ID_DEHUMIDTFIER_AIR_PURFIFIER:
+        case SERVICE_ID_DEHUMIDIFIER_AIR_PURIFIER:
             mapping_idx = get_mapping_idx(response, i, this->mappings_);
         break;
       }

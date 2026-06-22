@@ -453,8 +453,15 @@ static const uint8_t RESPONSE_LENGTH = 255;
   }
 
   void TaiXia::button_command(uint8_t sa_id, uint8_t service_id, uint8_t value) {
-    if (service_id == 0x00)
-      this->get_info_();
-    else {
-      uint8_t response[RESPONSE_LENGTH];
-      uint8_t cmd[6] = {0x06, sa_id, (uint8
+    if (this->version_ < 3.0) {
+        // 舊版協定處理
+    } else {
+      uint8_t cmd[6] = {0x06, sa_id, (uint8_t)(WRITE | service_id), 0x00, value, 0x00};
+      cmd[5] = this->checksum(cmd, 5);
+      uint8_t buffer[6];
+      this->send_cmd(cmd, buffer, 6);
+    }
+  }
+
+}  // namespace taixia
+}  // namespace esphome

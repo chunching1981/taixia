@@ -91,7 +91,6 @@ static const char *const TAG = "taixia.fan";
         else
           this->speed = buffer[4];
     } else if (this->sa_id_ == SA_ID_DEHUMIDIFIER) {
-        // 💡 修正了所有 DEHUMIDTFIER -> DEHUMIDIFIER
         command[2] = SERVICE_ID_DEHUMIDIFIER_STATUS;
         command[5] = this->parent_->checksum(command, 5);
         this->parent_->send_cmd(command, buffer, 6);
@@ -158,7 +157,6 @@ static const char *const TAG = "taixia.fan";
 
   fan::FanTraits TaiXiaFan::get_traits() {
     fan::FanTraits traits = fan::FanTraits(this->oscillation_.has_value(), this->speed_.has_value(), false, this->speed_count_);
-    // 更新為符合新版 ESPHome 的寫法
     traits.set_supported_preset_modes(this->preset_modes_);
     return traits;
   }
@@ -236,8 +234,10 @@ static const char *const TAG = "taixia.fan";
             this->parent_->send_cmd(command, buffer, 6);
         }
     }
-    if (call.get_preset_mode().has_value()) {
-      uint8_t mode = get_preset_mode_value(*call.get_preset_mode());
+    
+    // 💡 修正了 ESPHome 新版的 const char* 問題
+    if (call.get_preset_mode() != nullptr) {
+      uint8_t mode = get_preset_mode_value(call.get_preset_mode());
       command[2] = WRITE | preset_mode;
       command[4] = mode;
       command[5] = this->parent_->checksum(command, 5);

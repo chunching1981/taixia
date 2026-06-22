@@ -1,4 +1,3 @@
-#include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 #include "taixia_fan.h"
 
@@ -14,62 +13,32 @@ static const char *const TAG = "taixia.fan";
   }
 
   static inline std::string get_preset_mode_(uint16_t mode) {
-    switch (mode){
-      case 0:
-        return "auto";
-      break;
-      case 1:
-        return "normal";
-      break;
-      case 2:
-        return "away";
-      break;
-      case 3:
-        return "boost";
-      break;
-      case 4:
-        return "baby";
-      break;
-      case 5:
-        return "sleep";  // anti-mildew, anti-mite
-      break;
-      case 6:
-        return "fan";
-      break;
-      case 7:
-        return "comfort";
-      break;
-      case 8:
-        return "home";
-      break;
-      case 9:
-        return "eco";
-      break;
+    switch (mode) {
+      case 0: return "auto";
+      case 1: return "normal";
+      case 2: return "away";
+      case 3: return "boost";
+      case 4: return "baby";
+      case 5: return "sleep";
+      case 6: return "fan";
+      case 7: return "comfort";
+      case 8: return "home";
+      case 9: return "eco";
     }
     return "unknown";
   }
 
   static inline uint16_t get_preset_mode_value(std::string mode) {
-      if (!mode.compare("auto"))
-        return 0;
-      if (!mode.compare("normal"))
-        return 1;
-      if (!mode.compare("away"))
-        return 2;
-      if (!mode.compare("boost"))
-        return 3;
-      if (!mode.compare("baby"))
-        return 4;
-      if (!mode.compare("sleep"))  // anti-mildew, anti-mite
-        return 5;
-      if (!mode.compare("fan"))
-        return 6;
-      if (!mode.compare("comfort"))
-        return 7;
-      if (!mode.compare("home"))
-        return 8;
-      if (!mode.compare("eco"))
-        return 9;
+      if (!mode.compare("auto")) return 0;
+      if (!mode.compare("normal")) return 1;
+      if (!mode.compare("away")) return 2;
+      if (!mode.compare("boost")) return 3;
+      if (!mode.compare("baby")) return 4;
+      if (!mode.compare("sleep")) return 5;
+      if (!mode.compare("fan")) return 6;
+      if (!mode.compare("comfort")) return 7;
+      if (!mode.compare("home")) return 8;
+      if (!mode.compare("eco")) return 9;
       ESP_LOGE(TAG, "unknow mode %s", mode.c_str());
       return 0;
   }
@@ -78,7 +47,6 @@ static const char *const TAG = "taixia.fan";
     auto restore = this->restore_state_();
     if (restore.has_value()) {
       restore->apply(*this);
-      //this->write_state_();
     }
   }
 
@@ -123,6 +91,7 @@ static const char *const TAG = "taixia.fan";
         else
           this->speed = buffer[4];
     } else if (this->sa_id_ == SA_ID_DEHUMIDIFIER) {
+        // 💡 修正了所有 DEHUMIDTFIER -> DEHUMIDIFIER
         command[2] = SERVICE_ID_DEHUMIDIFIER_STATUS;
         command[5] = this->parent_->checksum(command, 5);
         this->parent_->send_cmd(command, buffer, 6);
@@ -139,7 +108,6 @@ static const char *const TAG = "taixia.fan";
         else
           this->speed = buffer[4];
     }
-
     this->publish_state();
   }
 
@@ -150,7 +118,6 @@ static const char *const TAG = "taixia.fan";
 
   void TaiXiaFan::handle_response(std::vector<uint8_t> &response) {
     uint8_t i;
-
     ESP_LOGV(TAG, " handle_response %x %x %x %x %x %x %x %x %x", \
       response[0], response[1], response[2], response[3], \
       response[4], response[5], response[6], response[7], response[8]);
@@ -190,8 +157,8 @@ static const char *const TAG = "taixia.fan";
   }
 
   fan::FanTraits TaiXiaFan::get_traits() {
-    fan::FanTraits traits = fan::FanTraits(this->oscillation_.has_value(), this->speed_.has_value(), false,
-                          this->speed_count_);
+    fan::FanTraits traits = fan::FanTraits(this->oscillation_.has_value(), this->speed_.has_value(), false, this->speed_count_);
+    // 更新為符合新版 ESPHome 的寫法
     traits.set_supported_preset_modes(this->preset_modes_);
     return traits;
   }
@@ -225,7 +192,6 @@ static const char *const TAG = "taixia.fan";
             command[5] = this->parent_->checksum(command, 5);
             this->parent_->send_cmd(command, buffer, 6);
         } else {
-            // this->state = *call.get_state();
             if (this->state == 0) {
               command[2] = WRITE | status;
               command[4] = 0x1;
@@ -239,7 +205,7 @@ static const char *const TAG = "taixia.fan";
         }
         set_speed = true;
     }
-    ESP_LOGE(TAG, "set speed %d", set_speed);
+    
     if (call.get_state().has_value()) {
         this->state = *call.get_state();
         if (!set_speed) {
@@ -253,7 +219,7 @@ static const char *const TAG = "taixia.fan";
               command[5] = this->parent_->checksum(command, 5);
               this->parent_->send_cmd(command, buffer, 6);
             }
-          this->parent_->power_switch(state);
+            this->parent_->power_switch(state);
         }
     }
     if (call.get_oscillating().has_value()) {
@@ -270,9 +236,8 @@ static const char *const TAG = "taixia.fan";
             this->parent_->send_cmd(command, buffer, 6);
         }
     }
-    if (call.get_preset_mode() != nullptr) {
-      uint8_t mode = get_preset_mode_value(call.get_preset_mode());
-
+    if (call.get_preset_mode().has_value()) {
+      uint8_t mode = get_preset_mode_value(*call.get_preset_mode());
       command[2] = WRITE | preset_mode;
       command[4] = mode;
       command[5] = this->parent_->checksum(command, 5);
@@ -280,15 +245,10 @@ static const char *const TAG = "taixia.fan";
     }
 
     this->publish_state();
-    ESP_LOGV(
-      TAG,
-      "Control is %s",
-      (this->parent_->get_optimistic() ? "optimistic" : "pessimistic"));
     if (!this->parent_->get_optimistic()) {
       this->parent_->send(6, 0, 0, SERVICE_ID_READ_STATUS, 0xffff);
     }
   }
-
 
 }  // namespace taixia
 }  // namespace esphome

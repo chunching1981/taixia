@@ -463,6 +463,53 @@ static const uint8_t RESPONSE_LENGTH = 255;
     }
   }
 
+// --- 補上失蹤的 send 函數 ---
+  bool TaiXia::send(uint8_t packet_length, uint8_t data_type, uint8_t sa_id, uint8_t service_id, uint16_t data) {
+    uint8_t frame[255];
+
+    if (this->protocol_ != data_type)
+      data_type = this->protocol_;
+
+    frame[0] = packet_length;
+    frame[1] = sa_id;
+    frame[2] = service_id;
+    frame[3] = data >> 8;           // 高位元組
+    frame[4] = data & 0xFF;         // 低位元組
+    frame[5] = this->checksum(frame, 5);
+
+    this->write_array(frame, packet_length);
+    this->flush();
+    return true;
+  }
+
+  // --- 補上失蹤的 readline 函數 ---
+  void TaiXia::readline(bool handle_response) {
+    uint32_t timeout = 500; // 設定 500ms 超時，避免無窮迴圈
+    uint32_t start_time = millis();
+    this->buffer_.clear();
+
+    while (millis() - start_time < timeout) {
+      if (this->available()) {
+        uint8_t c;
+        this->read_byte(&c);
+        this->buffer_.push_back(c);
+        
+        // 根據 TaiSEIA 協定，第一個 byte 通常是封包長度
+        if (this->buffer_.size() > 0 && this->buffer_.size() >= this->buffer_[0]) {
+          break; // 讀取完一個完整封包，跳出迴圈
+        }
+      } else {
+        delay(1); // 稍微等待，把資源讓給 ESP 晶片其他程序
+      }
+    }
+
+    // 如果有要求處理回應，就把收到的資料派發給所有的 Sensor
+    if (handle_response && this->buffer_.size() > 0) {
+      for (auto &listener : this->listeners_) {
+        listener->on_response(this->sa_id_, this->buffer_);
+      }
+    }
+  }
 // 💡 補上遺漏的 loop 迴圈函數
   void TaiXia::loop() {
     this->readline(true);

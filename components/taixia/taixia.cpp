@@ -510,6 +510,11 @@ static const uint8_t RESPONSE_LENGTH = 255;
       }
     }
   }
+// 💡 補回剛剛被我誤刪的 on_response 函數
+  void TaiXiaListener::on_response(uint16_t sa_id, std::vector<uint8_t> &response) {
+    this->handle_response(response);
+  }
+
 // 💡 補上遺漏的 loop 迴圈函數
   void TaiXia::loop() {
     this->readline(true);

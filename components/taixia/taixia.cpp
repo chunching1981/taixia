@@ -482,9 +482,14 @@ static const uint8_t RESPONSE_LENGTH = 255;
     return true;
   }
 
-  // --- 補上失蹤的 readline 函數 ---
+  // 💡 修正：非阻塞式的 readline，不卡死 Wi-Fi 晶片
   void TaiXia::readline(bool handle_response) {
-    uint32_t timeout = 500; // 設定 500ms 超時，避免無窮迴圈
+    // 1. 如果序列埠沒有收到資料，立刻退出！把 CPU 還給 Wi-Fi 模組！
+    if (!this->available()) {
+      return;
+    }
+
+    uint32_t timeout = 50; // 縮短超時時間
     uint32_t start_time = millis();
     this->buffer_.clear();
 
@@ -494,16 +499,14 @@ static const uint8_t RESPONSE_LENGTH = 255;
         this->read_byte(&c);
         this->buffer_.push_back(c);
         
-        // 根據 TaiSEIA 協定，第一個 byte 通常是封包長度
+        // 讀取完一個完整封包就跳出
         if (this->buffer_.size() > 0 && this->buffer_.size() >= this->buffer_[0]) {
-          break; // 讀取完一個完整封包，跳出迴圈
+          break; 
         }
-      } else {
-        delay(1); // 稍微等待，把資源讓給 ESP 晶片其他程序
       }
     }
 
-    // 如果有要求處理回應，就把收到的資料派發給所有的 Sensor
+    // 如果有資料，派發給各個感測器
     if (handle_response && this->buffer_.size() > 0) {
       for (auto &listener : this->listeners_) {
         listener->on_response(this->sa_id_, this->buffer_);

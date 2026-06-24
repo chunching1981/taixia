@@ -58,113 +58,76 @@ static const uint8_t RESPONSE_LENGTH = 255;
     return this->write_command_(command, response, len, rlen, 6000);
   }
 
-  void TaiXia::get_info_() {
+void TaiXia::get_info_() {
     uint8_t i;
     this->buffer_.clear();
 
+    // 1. 讀取 Version
     this->send(6, 0, 0x00, SERVICE_ID_READ_VERSION, 0xFFFF);
     this->readline(false);
-
-    if ((this->buffer_[0] >= 0x0) && (this->buffer_[1] == 0x0) && (this->buffer_[2] == SERVICE_ID_READ_VERSION)) {
+    // 💡 加上防護：確保 buffer_ 裡面至少有 5 個字節才讀取
+    if (this->buffer_.size() >= 5 && (this->buffer_[0] >= 0x0) && (this->buffer_[1] == 0x0) && (this->buffer_[2] == SERVICE_ID_READ_VERSION)) {
       if (this->version_textsensor_ != nullptr) {
-        std::string version;
-        version = format_hex_pretty(this->buffer_[3]) + "." + format_hex_pretty(this->buffer_[4]);
+        std::string version = format_hex_pretty(this->buffer_[3]) + "." + format_hex_pretty(this->buffer_[4]);
         this->version_textsensor_->publish_state(version);
       }
     }
     this->buffer_.clear();
 
+    // 2. 讀取 SA_ID
     this->send(6, 0, 0x00, SERVICE_ID_READ_SA_ID, 0xFFFF);
-    if (this->response_time_ != 0) {
-      delayMicroseconds(this->response_time_);
-    }
+    if (this->response_time_ != 0) delayMicroseconds(this->response_time_);
     this->readline(false);
-
-    if ((this->buffer_[0] >= 0x0) && (this->buffer_[1] == 0x0) && (this->buffer_[2] == SERVICE_ID_READ_SA_ID)) {
+    if (this->buffer_.size() >= 5 && (this->buffer_[0] >= 0x0) && (this->buffer_[1] == 0x0) && (this->buffer_[2] == SERVICE_ID_READ_SA_ID)) {
       if (this->sa_id_textsensor_ != nullptr) {
-        std::string sa_id;
-        sa_id = format_hex_pretty(this->buffer_[3]) + format_hex_pretty(this->buffer_[4]);
+        std::string sa_id = format_hex_pretty(this->buffer_[3]) + format_hex_pretty(this->buffer_[4]);
         this->sa_id_textsensor_->publish_state(sa_id);
       }
-      // if not preset sa_id
-      if (this->sa_id_ == 0)
-        this->sa_id_ = this->buffer_[3] << 8 | this->buffer_[4];
+      if (this->sa_id_ == 0) this->sa_id_ = this->buffer_[3] << 8 | this->buffer_[4];
     }
     this->buffer_.clear();
 
+    // 3. 讀取 Brand
     this->send(6, 0, 0x00, SERVICE_ID_READ_BRAND, 0xFFFF);
-    if (this->response_time_ != 0) {
-      delayMicroseconds(this->response_time_);
-    }
+    if (this->response_time_ != 0) delayMicroseconds(this->response_time_);
     this->readline(false);
-
-    if ((this->buffer_[0] >= 0x0) && (this->buffer_[1] == 0x0) && (this->buffer_[2] == SERVICE_ID_READ_BRAND)) {
+    if (this->buffer_.size() >= 3 && (this->buffer_[0] >= 0x0) && (this->buffer_[1] == 0x0) && (this->buffer_[2] == SERVICE_ID_READ_BRAND)) {
       std::string brand;
-      for (i = 3; i < this->buffer_[0]; i++) {
-        if (this->buffer_[i] != 0x0) {
-          brand = brand + str_sprintf("%c", this->buffer_[i]);
-        } else {
-          break;
-        }
+      for (i = 3; i < this->buffer_[0] && i < this->buffer_.size(); i++) {
+        if (this->buffer_[i] != 0x0) brand += str_sprintf("%c", this->buffer_[i]);
+        else break;
       }
-      if (this->brand_textsensor_ != nullptr) {
-        this->brand_textsensor_->publish_state(brand);
-      }
+      if (this->brand_textsensor_ != nullptr) this->brand_textsensor_->publish_state(brand);
     }
     this->buffer_.clear();
 
+    // 4. 讀取 Model
     this->send(6, 0, 0x00, SERVICE_ID_READ_MODEL, 0xFFFF);
-    if (this->response_time_ != 0) {
-      delayMicroseconds(this->response_time_);
-    }
+    if (this->response_time_ != 0) delayMicroseconds(this->response_time_);
     this->readline(false);
-
-    if ((this->buffer_[0] >= 0x0) && (this->buffer_[1] == 0x0) && (this->buffer_[2] == SERVICE_ID_READ_MODEL)) {
+    if (this->buffer_.size() >= 3 && (this->buffer_[0] >= 0x0) && (this->buffer_[1] == 0x0) && (this->buffer_[2] == SERVICE_ID_READ_MODEL)) {
       std::string model;
-      for (i = 3; i < this->buffer_[0]; i++) {
-        if (this->buffer_[i] != 0x0) {
-          model = model + str_sprintf("%c", this->buffer_[i]);
-        } else {
-          break;
-        }
+      for (i = 3; i < this->buffer_[0] && i < this->buffer_.size(); i++) {
+        if (this->buffer_[i] != 0x0) model += str_sprintf("%c", this->buffer_[i]);
+        else break;
       }
-      if (this->model_textsensor_ != nullptr) {
-        this->model_textsensor_->publish_state(model);
-      }
+      if (this->model_textsensor_ != nullptr) this->model_textsensor_->publish_state(model);
     }
     this->buffer_.clear();
 
+    // 5. 讀取 Services
     this->send(6, 0, 0x00, SERVICE_ID_READ_SERVICES, 0xFFFF);
-    if (this->response_time_ != 0) {
-      delayMicroseconds(this->response_time_);
-    }
+    if (this->response_time_ != 0) delayMicroseconds(this->response_time_);
     this->readline(false);
-
-    uint8_t len = this->buffer_[0];
-    uint8_t crc = 0;
-    if (len >= 6) {
-      uint8_t data = 0;
-      for (i = 0; i < len - 1; i++) {
-        data = this->buffer_[i];
-        crc ^= data++;
-      }
-    }
-
-    // compatible with Panasonic which do not include service id of read services in response
-    if ((this->buffer_[0] >= 0x0)
-//        && (this->buffer_[1] == 0x0) && (this->buffer_[2] == SERVICE_ID_READ_SERVICES)
-        && crc == this->buffer_[len - 1]
-      ) {
-      std::string services;
-      uint8_t start = 1;
-      if (this->buffer_[2] == SERVICE_ID_READ_SERVICES)
-        start = 3;
-
-      for (i = start; i < this->buffer_[0]; i++) {
-        services = services + format_hex_pretty(this->buffer_[i]) + " ";
-      }
-      if (this->services_textsensor_ != nullptr) {
-        this->services_textsensor_->publish_state(services);
+    if (this->buffer_.size() >= 3) {
+      uint8_t len = this->buffer_[0];
+      if (this->buffer_.size() >= len) { // 確保長度安全
+        std::string services;
+        uint8_t start = (this->buffer_[2] == SERVICE_ID_READ_SERVICES) ? 3 : 1;
+        for (i = start; i < len && i < this->buffer_.size(); i++) {
+          services += format_hex_pretty(this->buffer_[i]) + " ";
+        }
+        if (this->services_textsensor_ != nullptr) this->services_textsensor_->publish_state(services);
       }
     }
     this->buffer_.clear();
@@ -173,64 +136,52 @@ static const uint8_t RESPONSE_LENGTH = 255;
   void TaiXia::setup() {
     uint8_t i, j, k;
 
-    if (this->version_ < 3.0)
-      return;
+    if (this->version_ < 3.0) return;
 
     this->send(6, 0, 0x00, SERVICE_ID_REGISTER, 0xFFFF);
     this->readline(false);
 
-//    uint8_t crc = this->checksum(this->buffer_, this->buffer_[0] - 1);
-    if ((this->buffer_[0] >= 0x0) && (this->buffer_[1] == 0x0) && (this->buffer_[2] == SERVICE_ID_REGISTER)) {
+    // 💡 終極防護：如果設備沒接上，buffer 是空的，直接放棄本次解析，跳過並繼續開機！
+    if (this->buffer_.size() < 8) {
+      ESP_LOGW(TAG, "TaiSEIA device not connected yet. Waiting...");
+      return;
+    }
 
+    if ((this->buffer_[0] >= 0x0) && (this->buffer_[1] == 0x0) && (this->buffer_[2] == SERVICE_ID_REGISTER)) {
       std::string brand;
-      for (i = 8; i < this->buffer_[0]; i++) {
-        if (this->buffer_[i] != 0x0) {
-          brand = brand + str_sprintf("%c", this->buffer_[i]);
-        } else {
-          break;
-        }
+      for (i = 8; i < this->buffer_[0] && i < this->buffer_.size(); i++) {
+        if (this->buffer_[i] != 0x0) brand += str_sprintf("%c", this->buffer_[i]);
+        else break;
       }
 
       std::string model;
-      for (j = i + 1; j < this->buffer_[0]; j++) {
-        if (this->buffer_[j] != 0x0) {
-          model = model + str_sprintf("%c", this->buffer_[j]);
-        } else {
-          break;
-        }
+      for (j = i + 1; j < this->buffer_[0] && j < this->buffer_.size(); j++) {
+        if (this->buffer_[j] != 0x0) model += str_sprintf("%c", this->buffer_[j]);
+        else break;
       }
 
       std::string services;
-      for (k = j + 1; k < this->buffer_[0]; k++) {
-        services = services + format_hex_pretty(this->buffer_[k]) + " ";
+      for (k = j + 1; k < this->buffer_[0] && k < this->buffer_.size(); k++) {
+        services += format_hex_pretty(this->buffer_[k]) + " ";
       }
 
       if (this->sa_id_textsensor_ != nullptr) {
-        std::string sa_id;
-        sa_id = format_hex_pretty(this->buffer_[6]) + format_hex_pretty(this->buffer_[7]);
+        std::string sa_id = format_hex_pretty(this->buffer_[6]) + format_hex_pretty(this->buffer_[7]);
         this->sa_id_textsensor_->publish_state(sa_id);
       }
-      if (this->brand_textsensor_ != nullptr) {
-        this->brand_textsensor_->publish_state(brand);
-      }
-      if (this->model_textsensor_ != nullptr) {
-        this->model_textsensor_->publish_state(model);
-      }
-      if (this->services_textsensor_ != nullptr) {
-        this->services_textsensor_->publish_state(services);
-      }
+      if (this->brand_textsensor_ != nullptr) this->brand_textsensor_->publish_state(brand);
+      if (this->model_textsensor_ != nullptr) this->model_textsensor_->publish_state(model);
+      if (this->services_textsensor_ != nullptr) this->services_textsensor_->publish_state(services);
+      
       if (this->version_textsensor_ != nullptr) {
-        std::string version;
-        version = format_hex_pretty(this->buffer_[3]) + "." + format_hex_pretty(this->buffer_[4]);
+        std::string version = format_hex_pretty(this->buffer_[3]) + "." + format_hex_pretty(this->buffer_[4]);
         this->version_textsensor_->publish_state(version);
       }
 
-      // if not preset sa_id
-      if (this->sa_id_ == 0)
-        this->sa_id_ = this->buffer_[6] << 8 | this->buffer_[7];
-      } else {
-        this->get_info_();
-      }
+      if (this->sa_id_ == 0) this->sa_id_ = this->buffer_[6] << 8 | this->buffer_[7];
+    } else {
+      this->get_info_();
+    }
   }
 
   void TaiXia::switch_command(uint8_t sa_id, uint8_t service_id, bool onoff) {

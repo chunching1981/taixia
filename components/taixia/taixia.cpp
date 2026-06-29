@@ -30,7 +30,6 @@ static const uint8_t RESPONSE_LENGTH = 255;
       return true;
 
     this->flush();
-
     this->write_array(command, len);
 
     if (this->response_time_ != 0) {
@@ -38,19 +37,19 @@ static const uint8_t RESPONSE_LENGTH = 255;
       while (!available() && timeout > 0) {
         timeout--;
         if (timeout == 0) {
-            ESP_LOGE(TAG, "command timeout!");
-            return false;
+          ESP_LOGE(TAG, "command timeout!");
+          return false;
         }
       }
     }
-    this->flush();
 
-    // wait for data
+    // ✅ Bug 2 修正：先讀資料，再 flush 殘留，不能在讀之前 flush
     bool ret = this->read_array(response, rlen);
     this->flush();
+
     uint8_t crc = this->checksum(response, rlen - 1);
     if (crc != response[rlen - 1])
-        return false;
+      return false;
     return ret;
   }
 
@@ -65,7 +64,6 @@ void TaiXia::get_info_() {
     // 1. 讀取 Version
     this->send(6, 0, 0x00, SERVICE_ID_READ_VERSION, 0xFFFF);
     this->readline(false);
-    // 💡 加上防護：確保 buffer_ 裡面至少有 5 個字節才讀取
     if (this->buffer_.size() >= 5 && (this->buffer_[0] >= 0x0) && (this->buffer_[1] == 0x0) && (this->buffer_[2] == SERVICE_ID_READ_VERSION)) {
       if (this->version_textsensor_ != nullptr) {
         std::string version = format_hex_pretty(this->buffer_[3]) + "." + format_hex_pretty(this->buffer_[4]);
@@ -121,7 +119,7 @@ void TaiXia::get_info_() {
     this->readline(false);
     if (this->buffer_.size() >= 3) {
       uint8_t len = this->buffer_[0];
-      if (this->buffer_.size() >= len) { // 確保長度安全
+      if (this->buffer_.size() >= len) {
         std::string services;
         uint8_t start = (this->buffer_[2] == SERVICE_ID_READ_SERVICES) ? 3 : 1;
         for (i = start; i < len && i < this->buffer_.size(); i++) {
@@ -141,7 +139,6 @@ void TaiXia::get_info_() {
     this->send(6, 0, 0x00, SERVICE_ID_REGISTER, 0xFFFF);
     this->readline(false);
 
-    // 💡 終極防護：如果設備沒接上，buffer 是空的，直接放棄本次解析，跳過並繼續開機！
     if (this->buffer_.size() < 8) {
       ESP_LOGW(TAG, "TaiSEIA device not connected yet. Waiting...");
       return;
@@ -172,7 +169,7 @@ void TaiXia::get_info_() {
       if (this->brand_textsensor_ != nullptr) this->brand_textsensor_->publish_state(brand);
       if (this->model_textsensor_ != nullptr) this->model_textsensor_->publish_state(model);
       if (this->services_textsensor_ != nullptr) this->services_textsensor_->publish_state(services);
-      
+
       if (this->version_textsensor_ != nullptr) {
         std::string version = format_hex_pretty(this->buffer_[3]) + "." + format_hex_pretty(this->buffer_[4]);
         this->version_textsensor_->publish_state(version);
@@ -215,21 +212,20 @@ void TaiXia::get_info_() {
   }
 
   void TaiXia::get_number(uint8_t sa_id, uint8_t service_id, uint8_t *response) {
-    ESP_LOGV(TAG, "get number: %x %x %x", this->sa_id_ , sa_id, service_id);
+    ESP_LOGV(TAG, "get number: %x %x %x", this->sa_id_, sa_id, service_id);
     if (this->sa_id_ != sa_id)
       return;
 
     uint8_t cmd[6] = {0x06, sa_id, service_id, 0xFF, 0xFF, 0x00};
     cmd[5] = this->checksum(cmd, 5);
 
-    uint8_t ret = this->write_command_(cmd, response, 6, 6);
+    this->write_command_(cmd, response, 6, 6);
   }
 
   bool TaiXia::read_climate_status_() {
     uint8_t response[6];
     uint8_t buffer[RESPONSE_LENGTH];
     uint8_t cmd[6] = {0x06, 0x00, 0x00, 0xFF, 0xFF, 0x00};
-    uint8_t ret = 0;
     uint8_t i = 3;
     uint32_t timeout = 60000;
 
@@ -244,8 +240,6 @@ void TaiXia::get_info_() {
     buffer[i++] = response[3];
     buffer[i++] = response[4];
 
-    timeout = 60000;
-    cmd[1] = this->sa_id_;
     cmd[2] = SERVICE_ID_CLIMATE_MODE;
     cmd[5] = this->checksum(cmd, 5);
     this->write_command_(cmd, response, 6, 6, timeout);
@@ -253,18 +247,13 @@ void TaiXia::get_info_() {
     buffer[i++] = response[3];
     buffer[i++] = response[4];
 
-    timeout = 60000;
-    cmd[1] = this->sa_id_;
     cmd[2] = SERVICE_ID_CLIMATE_FAN_SPEED;
     cmd[5] = this->checksum(cmd, 5);
-
     this->write_command_(cmd, response, 6, 6, timeout);
     buffer[i++] = response[2];
     buffer[i++] = response[3];
     buffer[i++] = response[4];
 
-    timeout = 60000;
-    cmd[1] = this->sa_id_;
     cmd[2] = SERVICE_ID_CLIMATE_TARGET_TEMPERATURE;
     cmd[5] = this->checksum(cmd, 5);
     this->write_command_(cmd, response, 6, 6, timeout);
@@ -272,8 +261,6 @@ void TaiXia::get_info_() {
     buffer[i++] = response[3];
     buffer[i++] = response[4];
 
-    timeout = 60000;
-    cmd[1] = this->sa_id_;
     cmd[2] = SERVICE_ID_CLIMATE_TEMPERATURE_INDOOR;
     cmd[5] = this->checksum(cmd, 5);
     this->write_command_(cmd, response, 6, 6, timeout);
@@ -281,8 +268,6 @@ void TaiXia::get_info_() {
     buffer[i++] = response[3];
     buffer[i++] = response[4];
 
-    timeout = 60000;
-    cmd[1] = this->sa_id_;
     cmd[2] = SERVICE_ID_CLIMATE_OFF_TIME;
     cmd[5] = this->checksum(cmd, 5);
     this->write_command_(cmd, response, 6, 6, timeout);
@@ -290,27 +275,22 @@ void TaiXia::get_info_() {
     buffer[i++] = response[3];
     buffer[i++] = response[4];
 
-    timeout = 60000;
-    cmd[1] = this->sa_id_;
     cmd[2] = SERVICE_ID_CLIMATE_ON_TIMER;
     cmd[5] = this->checksum(cmd, 5);
-
     this->write_command_(cmd, response, 6, 6, timeout);
     buffer[i++] = response[2];
     buffer[i++] = response[3];
     buffer[i++] = response[4];
 
-    timeout = 60000;
-    cmd[1] = this->sa_id_;
     cmd[2] = SERVICE_ID_CLIMATE_SWING_HORIZONTAL;
     cmd[5] = this->checksum(cmd, 5);
-
     this->write_command_(cmd, response, 6, 6, timeout);
     buffer[i++] = response[2];
     buffer[i++] = response[3];
     buffer[i++] = response[4];
 
-    buffer[i] = this->checksum(cmd, i);
+    // ✅ Bug 3 修正：checksum 要算 buffer，不是 cmd
+    buffer[i] = this->checksum(buffer, i);
 
     this->buffer_.clear();
     buffer[0] = i;
@@ -323,23 +303,20 @@ void TaiXia::get_info_() {
       listener->on_response(this->sa_id_, this->buffer_);
 
     this->buffer_.clear();
-
     return true;
   }
 
-  // 💡 新增的除溼機狀態讀取功能！
   bool TaiXia::read_dehumidifier_status_() {
     uint8_t response[6];
     uint8_t buffer[RESPONSE_LENGTH];
     uint8_t cmd[6] = {0x06, 0x00, 0x00, 0xFF, 0xFF, 0x00};
-    uint8_t ret = 0;
     uint8_t i = 3;
     uint32_t timeout = 60000;
 
     memset(response, 0x00, 6);
     memset(buffer, 0x00, RESPONSE_LENGTH);
 
-    // 1. 讀取電源/狀態
+    // 1. 電源/狀態
     cmd[1] = this->sa_id_;
     cmd[2] = SERVICE_ID_DEHUMIDIFIER_STATUS;
     cmd[5] = this->checksum(cmd, 5);
@@ -348,9 +325,7 @@ void TaiXia::get_info_() {
     buffer[i++] = response[3];
     buffer[i++] = response[4];
 
-    // 2. 讀取運作模式
-    timeout = 60000;
-    cmd[1] = this->sa_id_;
+    // 2. 運作模式
     cmd[2] = SERVICE_ID_DEHUMIDIFIER_MODE;
     cmd[5] = this->checksum(cmd, 5);
     this->write_command_(cmd, response, 6, 6, timeout);
@@ -358,9 +333,7 @@ void TaiXia::get_info_() {
     buffer[i++] = response[3];
     buffer[i++] = response[4];
 
-    // 3. 讀取目前相對濕度
-    timeout = 60000;
-    cmd[1] = this->sa_id_;
+    // 3. 相對濕度
     cmd[2] = SERVICE_ID_DEHUMIDIFIER_RELATIVE_HUMIDITY;
     cmd[5] = this->checksum(cmd, 5);
     this->write_command_(cmd, response, 6, 6, timeout);
@@ -368,9 +341,7 @@ void TaiXia::get_info_() {
     buffer[i++] = response[3];
     buffer[i++] = response[4];
 
-    // 4. 讀取水箱滿水狀態
-    timeout = 60000;
-    cmd[1] = this->sa_id_;
+    // 4. 水箱滿水
     cmd[2] = SERVICE_ID_DEHUMIDIFIER_WATER_TANK_FULL;
     cmd[5] = this->checksum(cmd, 5);
     this->write_command_(cmd, response, 6, 6, timeout);
@@ -378,7 +349,8 @@ void TaiXia::get_info_() {
     buffer[i++] = response[3];
     buffer[i++] = response[4];
 
-    buffer[i] = this->checksum(cmd, i);
+    // ✅ Bug 3 修正：checksum 要算 buffer，不是 cmd
+    buffer[i] = this->checksum(buffer, i);
 
     this->buffer_.clear();
     buffer[0] = i;
@@ -391,21 +363,21 @@ void TaiXia::get_info_() {
       listener->on_response(this->sa_id_, this->buffer_);
 
     this->buffer_.clear();
-
     return true;
   }
 
   bool TaiXia::read_sa_status() {
     if (this->sa_id_ == 1)
       return this->read_climate_status_();
-    else if (this->sa_id_ == 4) // 💡 讓程式遇到除溼機(4)時，去呼叫下面那個函數
+    // ✅ Bug 1 修正：除濕機是 5，不是 4
+    else if (this->sa_id_ == 5)
       return this->read_dehumidifier_status_();
     return false;
   }
 
   void TaiXia::button_command(uint8_t sa_id, uint8_t service_id, uint8_t value) {
     if (this->version_ < 3.0) {
-        // 舊版協定處理
+      // 舊版協定未實作
     } else {
       uint8_t cmd[6] = {0x06, sa_id, (uint8_t)(WRITE | service_id), 0x00, value, 0x00};
       cmd[5] = this->checksum(cmd, 5);
@@ -414,7 +386,6 @@ void TaiXia::get_info_() {
     }
   }
 
-// --- 補上失蹤的 send 函數 ---
   bool TaiXia::send(uint8_t packet_length, uint8_t data_type, uint8_t sa_id, uint8_t service_id, uint16_t data) {
     uint8_t frame[255];
 
@@ -424,8 +395,8 @@ void TaiXia::get_info_() {
     frame[0] = packet_length;
     frame[1] = sa_id;
     frame[2] = service_id;
-    frame[3] = data >> 8;           // 高位元組
-    frame[4] = data & 0xFF;         // 低位元組
+    frame[3] = data >> 8;
+    frame[4] = data & 0xFF;
     frame[5] = this->checksum(frame, 5);
 
     this->write_array(frame, packet_length);
@@ -433,14 +404,12 @@ void TaiXia::get_info_() {
     return true;
   }
 
-  // 💡 修正：非阻塞式的 readline，不卡死 Wi-Fi 晶片
   void TaiXia::readline(bool handle_response) {
-    // 1. 如果序列埠沒有收到資料，立刻退出！把 CPU 還給 Wi-Fi 模組！
     if (!this->available()) {
       return;
     }
 
-    uint32_t timeout = 50; // 縮短超時時間
+    uint32_t timeout = 50;
     uint32_t start_time = millis();
     this->buffer_.clear();
 
@@ -449,27 +418,24 @@ void TaiXia::get_info_() {
         uint8_t c;
         this->read_byte(&c);
         this->buffer_.push_back(c);
-        
-        // 讀取完一個完整封包就跳出
+
         if (this->buffer_.size() > 0 && this->buffer_.size() >= this->buffer_[0]) {
-          break; 
+          break;
         }
       }
     }
 
-    // 如果有資料，派發給各個感測器
     if (handle_response && this->buffer_.size() > 0) {
       for (auto &listener : this->listeners_) {
         listener->on_response(this->sa_id_, this->buffer_);
       }
     }
   }
-// 💡 補回剛剛被我誤刪的 on_response 函數
+
   void TaiXiaListener::on_response(uint16_t sa_id, std::vector<uint8_t> &response) {
     this->handle_response(response);
   }
 
-// 💡 補上遺漏的 loop 迴圈函數
   void TaiXia::loop() {
     this->readline(true);
   }

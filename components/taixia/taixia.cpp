@@ -370,7 +370,7 @@ void TaiXia::get_info_() {
     if (this->sa_id_ == 1)
       return this->read_climate_status_();
     // ✅ Bug 1 修正：除濕機是 5，不是 4
-    else if (this->sa_id_ == 5)
+    else if (this->sa_id_ == 4)
       return this->read_dehumidifier_status_();
     return false;
   }

@@ -33,7 +33,7 @@ CONF_SUPPORTED_SA = [
 ]
 
 # ✅ 修正：除濕機 SA ID 是 5，不是 4
-CONF_SUPPORTED_SA_ID = [1, 5, 14, 15]
+CONF_SUPPORTED_SA_ID = [1, 4, 14, 15]
 
 CONFIG_SCHEMA = uart.UART_DEVICE_SCHEMA.extend(
     {

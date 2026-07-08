@@ -43,7 +43,6 @@ static const uint8_t RESPONSE_LENGTH = 255;
       }
     }
 
-    // ✅ Bug 2 修正：先讀資料，再 flush 殘留，不能在讀之前 flush
     bool ret = this->read_array(response, rlen);
     this->flush();
 
@@ -289,7 +288,6 @@ void TaiXia::get_info_() {
     buffer[i++] = response[3];
     buffer[i++] = response[4];
 
-    // ✅ Bug 3 修正：checksum 要算 buffer，不是 cmd
     buffer[i] = this->checksum(buffer, i);
 
     this->buffer_.clear();
@@ -316,7 +314,6 @@ void TaiXia::get_info_() {
     memset(response, 0x00, 6);
     memset(buffer, 0x00, RESPONSE_LENGTH);
 
-    // 1. 電源/狀態
     cmd[1] = this->sa_id_;
     cmd[2] = SERVICE_ID_DEHUMIDIFIER_STATUS;
     cmd[5] = this->checksum(cmd, 5);
@@ -325,7 +322,6 @@ void TaiXia::get_info_() {
     buffer[i++] = response[3];
     buffer[i++] = response[4];
 
-    // 2. 運作模式
     cmd[2] = SERVICE_ID_DEHUMIDIFIER_MODE;
     cmd[5] = this->checksum(cmd, 5);
     this->write_command_(cmd, response, 6, 6, timeout);
@@ -333,7 +329,6 @@ void TaiXia::get_info_() {
     buffer[i++] = response[3];
     buffer[i++] = response[4];
 
-    // 3. 相對濕度
     cmd[2] = SERVICE_ID_DEHUMIDIFIER_RELATIVE_HUMIDITY;
     cmd[5] = this->checksum(cmd, 5);
     this->write_command_(cmd, response, 6, 6, timeout);
@@ -341,7 +336,6 @@ void TaiXia::get_info_() {
     buffer[i++] = response[3];
     buffer[i++] = response[4];
 
-    // 4. 水箱滿水
     cmd[2] = SERVICE_ID_DEHUMIDIFIER_WATER_TANK_FULL;
     cmd[5] = this->checksum(cmd, 5);
     this->write_command_(cmd, response, 6, 6, timeout);
@@ -349,7 +343,6 @@ void TaiXia::get_info_() {
     buffer[i++] = response[3];
     buffer[i++] = response[4];
 
-    // ✅ Bug 3 修正：checksum 要算 buffer，不是 cmd
     buffer[i] = this->checksum(buffer, i);
 
     this->buffer_.clear();
@@ -366,10 +359,10 @@ void TaiXia::get_info_() {
     return true;
   }
 
+  // 除濕機 SA_ID = 4（依 taixia.h 定義 SA_ID_DEHUMIDIFIER 0x04）
   bool TaiXia::read_sa_status() {
     if (this->sa_id_ == 1)
       return this->read_climate_status_();
-    // ✅ Bug 1 修正：除濕機是 5，不是 4
     else if (this->sa_id_ == 4)
       return this->read_dehumidifier_status_();
     return false;

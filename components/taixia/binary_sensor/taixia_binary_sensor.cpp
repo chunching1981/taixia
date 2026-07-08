@@ -19,7 +19,8 @@ static const char *const TAG = "taixia.binary_sensor";
         response[0], response[1], response[2], response[3], \
         response[4], response[5], response[6], response[7], response[8]);
 
-    for (i = 6; i < response[0] - 3; i+=3) {
+    // ✅ Bug 1 修正：i < response[0] 才能讀到最後一筆資料（原本 -3 會提早停止）
+    for (i = 6; i < response[0]; i+=3) {
       if (this->service_id_ == 0x00) {
         this->state = bool(response[4]);
         goto done;
@@ -33,14 +34,19 @@ static const char *const TAG = "taixia.binary_sensor";
                 goto done;
               }
             break;
-
           }
-          break; // 💡 順手幫原作者補上冷氣 case 忘記寫的 break，雖然不影響除溼機，但這是好習慣
+          break;
         case SA_ID_DEHUMIDIFIER:
           switch (response[i]) {
-            // 💡 以下的 DEHUMIDIFIER 和 PURFIFIER 錯字已全數修正
             case SERVICE_ID_DEHUMIDIFIER_WATER_TANK_FULL:
               if (this->service_id_ == SERVICE_ID_DEHUMIDIFIER_WATER_TANK_FULL) {
+                this->state = bool(response[i + 2]);
+                goto done;
+              }
+            break;
+            // ✅ Bug 2 修正：補上 filter_notify case（原本缺漏，sensor 永遠不更新）
+            case SERVICE_ID_DEHUMIDIFIER_FILTER_NOTIFY:
+              if (this->service_id_ == SERVICE_ID_DEHUMIDIFIER_FILTER_NOTIFY) {
                 this->state = bool(response[i + 2]);
                 goto done;
               }
@@ -91,9 +97,8 @@ static const char *const TAG = "taixia.binary_sensor";
                 goto done;
               }
             break;
-
           }
-          break; // 💡 順手補上 ERV 的 break
+          break;
       }
     }
 done:

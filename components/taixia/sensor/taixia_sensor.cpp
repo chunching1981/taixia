@@ -153,7 +153,8 @@ void DehumidifierSensor::dump_config() {
 
 void DehumidifierSensor::handle_response(std::vector<uint8_t> &response) {
   uint8_t i;
-  for (i = 3; i < response[0] - 3; i+=3) {
+  // ✅ 修正：i < response[0] 才能讀到最後一筆資料
+  for (i = 3; i < response[0]; i+=3) {
     if ((response[i + 1] == 0xFF) && (response[i + 2] == 0xFF)) continue;
     switch (response[i]) {
       case SERVICE_ID_DEHUMIDIFIER_TEMPERATURE_INDOOR:
@@ -171,7 +172,6 @@ void DehumidifierSensor::handle_response(std::vector<uint8_t> &response) {
       case SERVICE_ID_DEHUMIDIFIER_SIDE_AIR_VENT:
         if (this->side_air_vent_sensor_ != nullptr) publish_u16(response, i, this->side_air_vent_sensor_);
       break;
-      // 💡 已經將未宣告的 Defrost 移除
       case SERVICE_ID_DEHUMIDIFIER_ERROR_CODE:
         if (this->error_code_sensor_ != nullptr) publish_u16(response, i, this->error_code_sensor_);
       break;

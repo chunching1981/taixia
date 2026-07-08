@@ -122,7 +122,8 @@ static const char *const TAG = "taixia.fan";
       response[4], response[5], response[6], response[7], response[8]);
 
     if (response[1] == 0x00 && response[2] == SERVICE_ID_READ_STATUS) {
-        for (i = 3; i < response[0] - 3; i+=3) {
+        // ✅ 修正：i < response[0] 避免漏掉最後一筆資料
+        for (i = 3; i < response[0]; i+=3) {
             if (this->sa_id_ == SA_ID_FAN) {
                 switch (response[i]) {
                   case SERVICE_ID_FAN_STATUS:
@@ -142,12 +143,11 @@ static const char *const TAG = "taixia.fan";
                     this->state = get_u16(response, i + 1);
                     this->parent_->power_switch(this->state);
                   break;
-                  case SERVICE_ID_DEHUMIDIFIER_FAN_LEVEL:
-                    this->speed = get_u16(response, i + 1);
-                  break;
                   case SERVICE_ID_DEHUMIDIFIER_MODE:
                     this->set_preset_mode_(get_preset_mode_(get_u16(response, i + 1)));
                   break;
+                  // ✅ 移除 FAN_LEVEL case：polling buffer 不含此資料，是死碼
+                  // 風速只在 dump_config 時讀一次（已足夠）
                 }
             }
         }
@@ -203,7 +203,7 @@ static const char *const TAG = "taixia.fan";
         }
         set_speed = true;
     }
-    
+
     if (call.get_state().has_value()) {
         this->state = *call.get_state();
         if (!set_speed) {
@@ -234,8 +234,7 @@ static const char *const TAG = "taixia.fan";
             this->parent_->send_cmd(command, buffer, 6);
         }
     }
-    
-    // 💡 修正了 ESPHome 新版的 const char* 問題
+
     if (call.get_preset_mode() != nullptr) {
       uint8_t mode = get_preset_mode_value(call.get_preset_mode());
       command[2] = WRITE | preset_mode;

@@ -122,7 +122,6 @@ static const char *const TAG = "taixia.fan";
       response[4], response[5], response[6], response[7], response[8]);
 
     if (response[1] == 0x00 && response[2] == SERVICE_ID_READ_STATUS) {
-        // ✅ 修正：i < response[0] 避免漏掉最後一筆資料
         for (i = 3; i < response[0]; i+=3) {
             if (this->sa_id_ == SA_ID_FAN) {
                 switch (response[i]) {
@@ -146,8 +145,6 @@ static const char *const TAG = "taixia.fan";
                   case SERVICE_ID_DEHUMIDIFIER_MODE:
                     this->set_preset_mode_(get_preset_mode_(get_u16(response, i + 1)));
                   break;
-                  // ✅ 移除 FAN_LEVEL case：polling buffer 不含此資料，是死碼
-                  // 風速只在 dump_config 時讀一次（已足夠）
                 }
             }
         }

@@ -79,7 +79,7 @@ void AirConditionerSensor::dump_config() {
 
 void AirConditionerSensor::handle_response(std::vector<uint8_t> &response) {
   uint8_t i;
-  for (i = 9; i < response[0] - 3; i+=3) {
+  for (i = 9; i < response[0]; i+=3) {
     if ((response[i + 1] == 0xFF) && (response[i + 2] == 0xFF)) continue;
     switch (response[i]) {
       case SERVICE_ID_CLIMATE_TEMPERATURE_INDOOR:
@@ -153,7 +153,6 @@ void DehumidifierSensor::dump_config() {
 
 void DehumidifierSensor::handle_response(std::vector<uint8_t> &response) {
   uint8_t i;
-  // ✅ 修正：i < response[0] 才能讀到最後一筆資料
   for (i = 3; i < response[0]; i+=3) {
     if ((response[i + 1] == 0xFF) && (response[i + 2] == 0xFF)) continue;
     switch (response[i]) {

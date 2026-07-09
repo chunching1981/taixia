@@ -5,7 +5,7 @@
 namespace esphome {
 namespace taixia {
 
-static const char *const TAG = "taixia.nubmer";
+static const char *const TAG = "taixia.number";
 
   static inline uint16_t get_u16(std::vector<uint8_t> &response, int start) {
     return (response[start] << 8) + response[start + 1];
@@ -39,7 +39,8 @@ static const char *const TAG = "taixia.nubmer";
         response[0], response[1], response[2], response[3], \
         response[4], response[5], response[6], response[7], response[8]);
 
-    for (i = 3; i < response[0] - 3; i+=3) {
+    // ✅ 修正：i < response[0] 才能讀到最後一筆資料
+    for (i = 3; i < response[0]; i+=3) {
       if (this->service_id_ == response[i]) {
         this->publish_state(get_u16(response, i + 1));
         return;

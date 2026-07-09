@@ -25,7 +25,7 @@ static const char *const TAG = "taixia.switch";
         TAG,
         "Control is %s",
         (this->parent_->get_optimistic() ? "optimistic" : "pessimistic"));
-      if (this->parent_->get_optimistic())
+      if (!this->parent_->get_optimistic())
         this->parent_->send(6, 0, SA_ID_ALL, SERVICE_ID_READ_STATUS, 0xFFFF);
     }
   }
@@ -38,7 +38,7 @@ static const char *const TAG = "taixia.switch";
         response[0], response[1], response[2], response[3], \
         response[4], response[5], response[6], response[7], response[8]);
 
-    for (i = 3; i < response[0] - 3; i+=3) {
+    for (i = 3; i < response[0]; i+=3) {
       if (this->service_id_ == response[i]) {
         new_state = bool(response[i + 2]);
         if (((this->sa_id_ == SA_ID_CLIMATE) && (this->service_id_ == SERVICE_ID_CLIMATE_BEEPER)) || 

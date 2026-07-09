@@ -189,9 +189,9 @@ static const char *const TAG = "taixia.select";
         response[0], response[1], response[2], response[3], \
         response[4], response[5], response[6], response[7], response[8]);
 
-    for (i = 6; i < response[0] - 3; i+=3) {
+    // ✅ 修正：i < response[0] 才能讀到最後一筆資料
+    for (i = 6; i < response[0]; i+=3) {
       switch (response[i]) {
-        // 💡 修正了這裡的錯字
         case SERVICE_ID_DEHUMIDIFIER_MODE:
             mapping_idx = get_mapping_idx(response, i, this->mappings_);
         break;
